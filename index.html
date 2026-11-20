@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Opens the connection to Supabase while the page's JavaScript is still
+         loading, so the first data request (and the first photos, which come from
+         the same address) don't have to wait for it. Vite fills in the address
+         from VITE_SUPABASE_URL when it builds the page. Two links because browsers
+         keep separate connections for CORS requests (the data, `crossorigin`) and
+         for plain <img> tags. -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" />
+
+    <!-- Space Grotesk (latin) is the font of every public page, so its download starts
+         now instead of when the CSS is read. `crossorigin` is required for fonts even
+         from the same address, or the browser downloads the file twice. The path is the
+         source file, the same one src/fonts.css names: the build swaps both for the same
+         hashed file name. The other fonts load only on the pages that use them. -->
+    <link
+      rel="preload"
+      href="/src/assets/fonts/space-grotesk-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>BSI Properties — Luxury Real Estate in Tangier</title>
+    <meta
+      name="description"
+      content="Luxury real estate for sale and rent in Tangier, Morocco — curated listings, private concierge service, and local expertise from BSI Properties."
+    />
+
+    <!-- Open Graph / Twitter Card defaults, shown for every page except
+         /property/:id, which gets its own per-listing title/description/
+         image injected server-side (see netlify/edge-functions/property-
+         og-tags.js) — link-preview crawlers fetch raw HTML and don't run
+         JS, so this file's static tags are all they ever see otherwise.
+         TODO(production): swap REPLACE-WITH-PRODUCTION-DOMAIN.example for
+         the real domain once it's live — see PRODUCTION_TODO.md. -->
+    <meta property="og:site_name" content="BSI Properties" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="BSI Properties — Luxury Real Estate in Tangier" />
+    <meta
+      property="og:description"
+      content="Curated luxury listings, private concierge service, and local expertise in Tangier, Morocco."
+    />
+    <meta property="og:image" content="https://REPLACE-WITH-PRODUCTION-DOMAIN.example/og-image.jpg" />
+    <meta property="og:url" content="https://REPLACE-WITH-PRODUCTION-DOMAIN.example/" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

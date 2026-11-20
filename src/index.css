@@ -1,0 +1,527 @@
+/* Fonts are self-hosted now (see fonts.css), so the Google Fonts @import that used to sit here is gone.
+   The older, commented-out version of it is kept below as it was. */
+/* @import url("https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Space+Grotesk:wght@300..700&display=swap"); */
+@import "./fonts.css";
+
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-anonymous: "Anonymous Pro", monospace;
+  --font-lato: lato, "sans serif";
+  --font-poppins: poppins, "sans serif";
+  /* The fallback is a system sans-serif, close to Space Grotesk in width, so text
+     doesn't jump when the real font swaps in (it used to be monospace, which is
+     much wider). Only ever visible while the font loads, or if it can't. */
+  --font-space_grotest: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  /* Used by /admin only, via the plain `body` rule below — the public site
+     always sets font-space_grotest explicitly on its own root wrapper,
+     which (being a closer ancestor) wins for every public page regardless
+     of this default. */
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  /* Backgrounds — refined off-whites */
+  --color-primary-500: #f8f7f6;
+  --color-primary-600: #efedeb;
+
+  /* Luxury Burgundy Scale */
+  --color-accent-400: #7c2b3f;
+  --color-accent-500: #6d213c; /* main brand burgundy */
+  --color-accent-600: #5c1e2b;
+
+  /* Gold Tones (UI friendly) */
+  --color-gold-400: #d9c8a4;
+  --color-gold-500: #cab08b;
+  --color-gold-600: #bfa98a;
+
+  /* Text Colors */
+  --color-main: #1a1a1a;
+  --color-secondary: #4a4a4a;
+  --color-trenary: #6a6a6a;
+
+  --color-luxury-gold: #d4af37;
+
+  --color-error-500: #d64545;
+}
+
+@layer utilities {
+  .wrapper {
+    max-width: 1800px;
+    margin-inline: auto;
+    padding-inline: 24px;
+  }
+
+  @media (min-width: 768px) {
+    .wrapper {
+      padding-inline: 36px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .wrapper {
+      padding-inline: 48px;
+    }
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-primary-500);
+  color: var(--color-main);
+}
+
+/* Tailwind doesn't set cursor:pointer on interactive elements by default
+   (a deliberate change from earlier versions) — without this, native
+   <button>s render with the default arrow cursor, which reads as "this
+   isn't clickable" even though it is. Applies sitewide (both apps) rather
+   than patching individual components one at a time. */
+button:not(:disabled),
+a,
+[role="button"],
+label[for],
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* iOS Safari auto-zooms the page on focus for any text input under 16px,
+   then keeps fighting to keep it in view as the on-screen keyboard opens —
+   that's what reads as "zooming in and teleporting while typing". This is
+   sitewide (any input, anywhere, present or future) rather than bumping
+   individual inputs' font sizes one at a time, which would be easy to miss
+   somewhere. Desktop sizing (text-sm etc.) is untouched above 767px, where
+   this browser behavior doesn't apply anyway. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Footer.jsx's Instagram marquee and PropertyConcierge.jsx's scrolling
+   ticker — pure CSS transform animations (compositor-only, no per-frame
+   JS) instead of a Framer Motion `animate` loop. Each track is built as
+   two identical copies of its content, so looping to exactly -50% always
+   lands back at the start seamlessly, at any viewport size — a fixed
+   pixel distance (the previous approach) only matches one specific
+   breakpoint's rendered width. */
+.footer-marquee {
+  animation: footer-marquee 40s linear infinite;
+  will-change: transform;
+}
+
+@keyframes footer-marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-marquee {
+    animation: none;
+  }
+}
+
+.concierge-ticker {
+  animation: concierge-ticker 80s linear infinite;
+  will-change: transform;
+}
+
+@keyframes concierge-ticker {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .concierge-ticker {
+    animation: none;
+  }
+}
+
+/* Custom thumb for every <input type="range"> styled with this class
+   (price filter, mortgage calculator). Chrome/Safari and Firefox expose
+   completely separate pseudo-elements for this with no shared selector —
+   relying on accent-color instead would be simpler, but renders a
+   visibly different native slider per browser/OS rather than the same
+   thumb everywhere, which is the actual thing being avoided here. */
+.range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: white;
+  border: 3px solid var(--color-accent-500);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: white;
+  border: 3px solid var(--color-accent-500);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.process-timeline {
+  margin: 0 auto;
+  max-width: 980px;
+  padding-block: 24px;
+  position: relative;
+}
+
+/* =========================================================
+   TIMELINE
+   ========================================================= */
+
+.timeline-track {
+  background: linear-gradient(#d8cbb7, #e4ded9);
+  bottom: 75px;
+  left: 50%;
+  position: absolute;
+  top: 75px;
+  transform: translateX(-50%);
+  width: 1px;
+}
+
+.timeline-fill {
+  background: linear-gradient(var(--color-accent-400), var(--color-accent-600));
+  box-shadow: 0 0 10px rgba(109, 33, 60, 0.16);
+  display: block;
+  height: calc(var(--timeline-progress) * 100%);
+  width: 1px;
+}
+
+/* =========================================================
+   STEP
+   ========================================================= */
+
+.timeline-step {
+  display: grid;
+  grid-template-columns: 1fr 72px 1fr;
+  min-height: 150px;
+  position: relative;
+}
+
+/* =========================================================
+   CARD
+   ========================================================= */
+
+.timeline-step article {
+  align-self: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #e6dfdc;
+  border-radius: 10px;
+  box-shadow: 0 7px 22px rgba(46, 33, 36, 0.035);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 380px;
+  min-height: 118px;
+  opacity: calc(0.58 + (var(--step-progress) * 0.42));
+  padding: 21px 24px 20px;
+  position: relative;
+
+  /*
+   * Desktop:
+   * Left cards enter from left.
+   * Right cards enter from right.
+   */
+  transform: translateX(calc((1 - var(--step-progress)) * var(--card-entry-x)))
+    translateY(calc((1 - var(--step-progress)) * 7px)) scale(calc(0.965 + (var(--step-progress) * 0.035)));
+
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+
+  will-change: transform, opacity;
+}
+
+/* Entry direction */
+.timeline-step.step-left article {
+  --card-entry-x: -42px;
+
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.timeline-step.step-right article {
+  --card-entry-x: 42px;
+
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: start;
+}
+
+/* =========================================================
+   CONNECTOR FROM CARD TO CENTER LINE
+   ========================================================= */
+
+.timeline-step article::after {
+  background: #d9cebc;
+  content: "";
+  height: 1px;
+  position: absolute;
+  top: 50%;
+  width: 36px;
+}
+
+.timeline-step.step-left article::after {
+  right: -37px;
+}
+
+.timeline-step.step-right article::after {
+  left: -37px;
+}
+
+/* Active connector */
+.timeline-step.is-active article::after {
+  background: linear-gradient(90deg, var(--color-gold-500), var(--color-accent-500));
+}
+
+.timeline-step.step-right.is-active article::after {
+  background: linear-gradient(90deg, var(--color-accent-500), var(--color-gold-500));
+}
+
+/* =========================================================
+   NUMBER
+   ========================================================= */
+
+.timeline-number {
+  color: rgba(109, 33, 60, 0.14);
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  position: absolute;
+  right: 20px;
+  top: 17px;
+}
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+
+.timeline-step h3 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin: 0 0 8px;
+  padding-right: 42px;
+}
+
+.timeline-step p {
+  color: var(--color-secondary);
+  font-family: var(--font-poppins);
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 315px;
+}
+
+/* =========================================================
+   DOT
+   ========================================================= */
+
+.timeline-dot {
+  align-items: center;
+  align-self: center;
+  background: var(--color-primary-500);
+  border: 1px solid var(--color-gold-500);
+  border-radius: 50%;
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  height: 14px;
+  justify-content: center;
+  justify-self: center;
+  position: relative;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+  width: 14px;
+  z-index: 2;
+}
+
+.timeline-dot::after {
+  background: var(--color-gold-500);
+  border-radius: 50%;
+  content: "";
+  height: 4px;
+  transition: background 0.25s ease;
+  width: 4px;
+}
+
+/* =========================================================
+   ACTIVE STATE
+   ========================================================= */
+
+.timeline-step.is-active .timeline-dot {
+  background: var(--color-accent-500);
+  border-color: white;
+
+  /*
+   * This gives the "pulse/glow" feeling without
+   * using an automatic animation.
+   * It remains tied to the scroll state.
+   */
+  box-shadow:
+    0 0 0 4px rgba(109, 33, 60, 0.075),
+    0 0 12px rgba(109, 33, 60, 0.18);
+
+  transform: scale(1.08);
+}
+
+.timeline-step.is-active .timeline-dot::after {
+  background: white;
+}
+
+.timeline-step.is-active article {
+  background: white;
+  border-color: rgba(109, 33, 60, 0.19);
+  box-shadow: 0 11px 28px rgba(47, 35, 37, 0.065);
+}
+
+/* =========================================================
+   TABLET / MOBILE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  /*
+   * Mobile becomes a simple vertical timeline.
+   * Everything sits in one column.
+   */
+  .process-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 0;
+    padding: 8px 0 8px 44px;
+  }
+
+  .timeline-track {
+    bottom: 68px;
+    left: 14px;
+    top: 68px;
+    transform: none;
+  }
+
+  .timeline-step {
+    display: block;
+    min-height: 136px;
+  }
+
+  .timeline-step article,
+  .timeline-step.step-left article,
+  .timeline-step.step-right article {
+    --card-entry-x: 0px;
+
+    max-width: none;
+    min-height: 136px;
+    width: 100%;
+
+    /*
+     * Completely different mobile animation:
+     * cards move upward instead of entering
+     * from alternating sides.
+     */
+    transform: translateY(calc((1 - var(--step-progress)) * 24px)) scale(calc(0.97 + (var(--step-progress) * 0.03)));
+  }
+
+  .timeline-step.step-left article,
+  .timeline-step.step-right article {
+    justify-self: auto;
+  }
+
+  .timeline-step article::after,
+  .timeline-step.step-left article::after,
+  .timeline-step.step-right article::after {
+    left: -30px;
+    right: auto;
+    width: 29px;
+  }
+
+  .timeline-dot {
+    left: -36px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .timeline-step.is-active .timeline-dot {
+    transform: translateY(-50%) scale(1.08);
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .process-timeline {
+    gap: 15px;
+    padding-left: 40px;
+  }
+
+  .timeline-track {
+    bottom: 70px;
+    left: 12px;
+    top: 70px;
+  }
+
+  .timeline-step {
+    min-height: 140px;
+  }
+
+  .timeline-step article,
+  .timeline-step.step-left article,
+  .timeline-step.step-right article {
+    min-height: 140px;
+    padding: 21px 20px 20px;
+  }
+
+  .timeline-dot {
+    left: -35px;
+  }
+
+  .timeline-step article::after,
+  .timeline-step.step-left article::after,
+  .timeline-step.step-right article::after {
+    left: -28px;
+    width: 27px;
+  }
+}
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-step article {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .timeline-dot {
+    transition: none;
+  }
+
+  .timeline-step.is-active .timeline-dot {
+    transform: none;
+  }
+}

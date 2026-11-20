@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+
+User-agent: GPTBot
+Disallow: /admin
+
+User-agent: Google-Extended
+Disallow: /admin
+
+User-agent: PerplexityBot
+Disallow: /admin
+
+Sitemap: https://REPLACE-WITH-PRODUCTION-DOMAIN.example/sitemap.xml
