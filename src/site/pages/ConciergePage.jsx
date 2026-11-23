@@ -10,6 +10,7 @@ import AskCard from "@/site/components/concierge/AskCard";
 import JsonLd from "@/site/components/JsonLd";
 import usePageTitle from "@/shared/seo/usePageTitle";
 import usePageMeta from "@/shared/seo/usePageMeta";
+import { PAGE_META } from "@/shared/seo/pageMeta";
 import { useSiteSettings } from "@/site/context/SiteSettingsProvider";
 import { toDialDigits } from "@/site/lib/phoneLinks";
 import { BTN_BASE } from "@/site/lib/conciergeStyles";
@@ -18,10 +19,8 @@ import { PAGE_PATH, COAST_IMG, heroImg, TRUST, SERVICES, STEPS, AREAS, FAQS } fr
 const Em = ({ children }) => <em className="font-semibold italic text-accent-500">{children}</em>;
 
 function ConciergePage() {
-  usePageTitle("Property Concierge & Management in Tangier");
-  usePageMeta(
-    "Property concierge in Tangier for short- and long-term rentals: home care, tenant and guest management, admin support and owner reporting.",
-  );
+  usePageTitle(PAGE_META.concierge.title);
+  usePageMeta(PAGE_META.concierge.description);
   const settings = useSiteSettings();
   const [openFaq, setOpenFaq] = useState(0);
 

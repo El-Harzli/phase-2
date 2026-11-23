@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { computePriceBounds, createDefaultFilters } from "@/site/lib/browseFilters";
 
@@ -6,18 +6,28 @@ import { computePriceBounds, createDefaultFilters } from "@/site/lib/browseFilte
 // step with the URL, the rent/sale switch and the data loading. The three
 // "if (… !== prev…)" blocks are React's "adjust state while rendering" pattern:
 // each one runs once per change, right when the change is noticed.
+//
+// The current results page lives in the URL as ?page=N (left out on page 1), so
+// Back, refresh and shared links keep the visitor's place. Changing a filter or
+// the search resets it to page 1; the rent/sale switch is a different path, so
+// it starts from page 1 on its own.
 export default function useBrowseFilters({ listingType, properties, loading }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const qParam = searchParams.get("q");
   const neighborhoodParam = searchParams.get("neighborhood");
 
+  // Anything that isn't a whole number above 1 (missing, junk, "0", "-3") is page 1.
+  const pageNumber = Number.parseInt(searchParams.get("page") ?? "", 10);
+  const page = Number.isInteger(pageNumber) && pageNumber > 1 ? pageNumber : 1;
+  const hasPageParam = searchParams.has("page");
+
   const priceBounds = useMemo(() => computePriceBounds(properties, listingType), [properties, listingType]);
 
-  const [filters, setFilters] = useState(() => ({
+  const [filters, setFiltersState] = useState(() => ({
     ...createDefaultFilters(listingType, priceBounds),
     neighborhood: neighborhoodParam || null,
   }));
-  const [search, setSearch] = useState(qParam ?? "");
+  const [search, setSearchState] = useState(qParam ?? "");
 
   const [prevQ, setPrevQ] = useState(qParam);
   const [prevNeighborhoodParam, setPrevNeighborhoodParam] = useState(neighborhoodParam);
@@ -25,12 +35,50 @@ export default function useBrowseFilters({ listingType, properties, loading }) {
   const [prevLoading, setPrevLoading] = useState(loading);
   const [prevPriceBounds, setPrevPriceBounds] = useState(priceBounds);
 
+  // Moves to another results page. The functional form keeps every other param
+  // (?q, ?neighborhood) as it is. Page changes the visitor makes add a history
+  // entry so Back works; resets caused by a filter change replace the current one.
+  const setPage = useCallback(
+    (next, { replace = false } = {}) => {
+      setSearchParams(
+        (current) => {
+          const params = new URLSearchParams(current);
+          if (next > 1) params.set("page", String(next));
+          else params.delete("page");
+          return params;
+        },
+        { replace },
+      );
+    },
+    [setSearchParams],
+  );
+
+  // What the filter UI (sidebar, panel, chips) and the search box call. Each
+  // one also sends the visitor back to page 1 — the page they were on may not
+  // exist for the new results. The internal updates below (syncing with the
+  // URL, the price bounds and the loading flip) use the plain state setters
+  // instead, so a background sync never resets the page.
+  const setFilters = useCallback(
+    (next) => {
+      setFiltersState(next);
+      if (hasPageParam) setPage(1, { replace: true });
+    },
+    [hasPageParam, setPage],
+  );
+  const setSearch = useCallback(
+    (next) => {
+      setSearchState(next);
+      if (hasPageParam) setPage(1, { replace: true });
+    },
+    [hasPageParam, setPage],
+  );
+
   // A neighborhood card (or any other link) can send someone here with
   // ?q=Malabata pre-filled — this only pulls in a *new* term from the URL,
   // so it never fights with someone typing/clearing the box by hand.
   if (qParam !== prevQ) {
     setPrevQ(qParam);
-    if (qParam) setSearch(qParam);
+    if (qParam) setSearchState(qParam);
   }
 
   // Same idea, but for an exact neighborhood filter (?neighborhood=<id>) —
@@ -39,7 +87,7 @@ export default function useBrowseFilters({ listingType, properties, loading }) {
   if (neighborhoodParam !== prevNeighborhoodParam) {
     setPrevNeighborhoodParam(neighborhoodParam);
     if (neighborhoodParam) {
-      setFilters((f) => ({ ...f, neighborhood: neighborhoodParam }));
+      setFiltersState((f) => ({ ...f, neighborhood: neighborhoodParam }));
     }
   }
 
@@ -51,7 +99,7 @@ export default function useBrowseFilters({ listingType, properties, loading }) {
   // silently wiping out a neighborhood filter the URL asks for.
   if (listingType !== prevListingType) {
     setPrevListingType(listingType);
-    setFilters({
+    setFiltersState({
       ...createDefaultFilters(listingType, priceBounds),
       neighborhood: neighborhoodParam || null,
     });
@@ -68,7 +116,7 @@ export default function useBrowseFilters({ listingType, properties, loading }) {
   if (loading !== prevLoading) {
     setPrevLoading(loading);
     if (!loading) {
-      setFilters((f) => ({ ...f, price: priceBounds }));
+      setFiltersState((f) => ({ ...f, price: priceBounds }));
     }
   }
 
@@ -80,10 +128,10 @@ export default function useBrowseFilters({ listingType, properties, loading }) {
   // nothing when the bounds are the same.
   if (priceBounds[0] !== prevPriceBounds[0] || priceBounds[1] !== prevPriceBounds[1]) {
     setPrevPriceBounds(priceBounds);
-    setFilters((f) =>
+    setFiltersState((f) =>
       f.price[0] === prevPriceBounds[0] && f.price[1] === prevPriceBounds[1] ? { ...f, price: priceBounds } : f,
     );
   }
 
-  return { filters, setFilters, search, setSearch, priceBounds };
+  return { filters, setFilters, search, setSearch, priceBounds, page, setPage };
 }

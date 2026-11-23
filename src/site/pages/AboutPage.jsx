@@ -7,6 +7,7 @@ import useAgents from "@/site/hooks/useAgents";
 import usePropertyCounts from "@/site/hooks/usePropertyCounts";
 import usePageTitle from "@/shared/seo/usePageTitle";
 import usePageMeta from "@/shared/seo/usePageMeta";
+import { PAGE_META } from "@/shared/seo/pageMeta";
 import Breadcrumbs from "@/site/components/Breadcrumbs";
 import JsonLd from "@/site/components/JsonLd";
 import Spinner from "@/shared/components/Spinner";
@@ -52,7 +53,7 @@ const Br = () => (
 );
 
 function AboutPage() {
-  usePageTitle("About Us: Family-Run Real Estate Agency in Tangier");
+  usePageTitle(PAGE_META.about.title);
   usePageMeta(META_DESCRIPTION);
   const settings = useSiteSettings();
   const { agents, loading: agentsLoading } = useAgents();

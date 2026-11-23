@@ -1,4 +1,5 @@
 import { IoShieldCheckmarkOutline, IoLocationOutline, IoHeartOutline } from "react-icons/io5";
+import { PAGE_META } from "@/shared/seo/pageMeta";
 
 /* =========================================================================
    Images
@@ -18,8 +19,9 @@ export const IMG = {
 };
 
 export const PAGE_PATH = "/about";
-export const META_DESCRIPTION =
-  "Family-run since 2011, B.S.I. is Tangier's trusted real estate agency — built on local knowledge, quiet discretion, and personal service.";
+// The words live in src/shared/seo/pageMeta.js, which the edge functions can
+// also read; this name stays so AboutPage's imports and JSON-LD don't change.
+export const META_DESCRIPTION = PAGE_META.about.description;
 
 /* =========================================================================
    Content

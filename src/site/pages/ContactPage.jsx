@@ -11,6 +11,7 @@ import {
 } from "react-icons/io5";
 import usePageTitle from "@/shared/seo/usePageTitle";
 import usePageMeta from "@/shared/seo/usePageMeta";
+import { PAGE_META } from "@/shared/seo/pageMeta";
 import Breadcrumbs from "@/site/components/Breadcrumbs";
 import Spinner from "@/shared/components/Spinner";
 import { useSiteSettings } from "@/site/context/SiteSettingsProvider";
@@ -108,10 +109,8 @@ function toCoord(value) {
 }
 
 function ContactPage() {
-  usePageTitle("Contact Us");
-  usePageMeta(
-    "Get in touch with BSI Properties — reach us by WhatsApp, phone, or email, or visit our office in Tangier, Morocco.",
-  );
+  usePageTitle(PAGE_META.contact.title);
+  usePageMeta(PAGE_META.contact.description);
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [message, setMessage] = useState("");

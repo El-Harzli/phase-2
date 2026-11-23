@@ -91,7 +91,7 @@ function FeaturedPropertiesSection() {
       />
 
       {/* FILTER TABS */}
-      <div ref={tabsContainerRef} className="relative inline-flex items-center gap-6 mt-6">
+      <div ref={tabsContainerRef} className="relative flex w-fit mx-auto items-center gap-6 mb-4 -mt-5">
         <span
           ref={underlineRef}
           className="absolute -bottom-[3px] h-[2px] bg-accent-400 transition-all duration-300 ease-out pointer-events-none"
@@ -109,7 +109,7 @@ function FeaturedPropertiesSection() {
         >
           <span
             ref={rentRef}
-            className={`uppercase tracking-[0.15em] text-[10.5px] ${
+            className={`uppercase tracking-[0.1em] lg:text-[12.5px] text-[10.5px] ${
               activeFilter === "For Rent" ? "text-accent-500" : "text-secondary"
             }`}
           >
@@ -126,7 +126,7 @@ function FeaturedPropertiesSection() {
         >
           <span
             ref={saleRef}
-            className={`uppercase tracking-[0.15em] text-[10.5px] ${
+            className={`uppercase tracking-[0.1em] lg:text-[12.5px] text-[10.5px] ${
               activeFilter === "For Sale" ? "text-accent-500" : "text-secondary"
             }`}
           >

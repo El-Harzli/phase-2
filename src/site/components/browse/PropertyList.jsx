@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from "react";
+import { useState, useMemo, useRef, lazy, Suspense } from "react";
 import {
   IoList,
   IoGridOutline,
@@ -10,7 +10,9 @@ import {
 import PropertyCard from "@/site/components/PropertyCard";
 import SortDropdown from "@/site/components/browse/SortDropdown";
 import FilterChips from "@/site/components/browse/FilterChips";
+import Pagination from "@/site/components/browse/Pagination";
 import { sortProperties } from "@/site/lib/browseSort";
+import usePageSize from "@/site/hooks/usePageSize";
 import Spinner from "@/shared/components/Spinner";
 
 // Leaflet is a genuinely heavy dependency (core JS + CSS + marker assets),
@@ -40,14 +42,49 @@ function PropertyList({
   setFilters,
   listingType,
   priceBounds,
+  page = 1,
+  onPageChange = () => {},
 }) {
   const [viewMode, setViewMode] = useState("grid");
   const [sort, setSort] = useState("popular");
+  const cardRef = useRef(null);
+  const pageSize = usePageSize();
 
   const sortedProperties = useMemo(() => sortProperties(properties, sort), [properties, sort]);
 
+  // Grid and list show one page of the sorted results (8 on phones, 12 from `sm`
+  // up — see usePageSize); the map below always gets the whole list. The page
+  // comes from the URL, which can ask for one that no longer exists (a shared
+  // link, fewer results than before, a wider screen with fewer pages), so it is
+  // clamped to the last real page here.
+  const totalPages = Math.max(1, Math.ceil(sortedProperties.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pagedProperties = useMemo(
+    () => sortedProperties.slice(pageStart, pageStart + pageSize),
+    [sortedProperties, pageStart, pageSize],
+  );
+
+  // Only a click on the page controls scrolls (back to the top of this card,
+  // clear of the fixed header — see scroll-mt below); filter and sort changes
+  // leave the scroll position alone.
+  const handlePageChange = (next) => {
+    onPageChange(next);
+    cardRef.current?.scrollIntoView();
+  };
+
+  // A different order makes the current page meaningless, so go back to page 1,
+  // replacing the history entry rather than adding one.
+  const handleSortChange = (value) => {
+    setSort(value);
+    if (page > 1) onPageChange(1, { replace: true });
+  };
+
   return (
-    <div className="w-full bg-white rounded-[24px] border border-accent-500/10 shadow-[0_8px_30px_rgba(0,0,0,0.06)] p-6">
+    <div
+      ref={cardRef}
+      className="scroll-mt-20 lg:scroll-mt-24 w-full bg-white rounded-[24px] border border-accent-500/10 shadow-[0_8px_30px_rgba(0,0,0,0.06)] p-6"
+    >
       <h2 className="text-lg font-semibold text-main mb-4">
         Search results <span className="text-secondary/60 font-normal">({sortedProperties.length})</span>
       </h2>
@@ -100,7 +137,7 @@ function PropertyList({
 
       {/* Sort + view toggle */}
       <div className="flex items-center justify-between gap-3 mb-5">
-        <SortDropdown value={sort} onChange={setSort} />
+        <SortDropdown value={sort} onChange={handleSortChange} />
 
         <div className="flex items-center gap-1 border border-accent-500/10 rounded-lg p-0.5 shrink-0">
           <button
@@ -147,7 +184,7 @@ function PropertyList({
         </Suspense>
       ) : viewMode === "list" ? (
         <div className="space-y-2.5">
-          {sortedProperties.map((p) => (
+          {pagedProperties.map((p) => (
             <PropertyCard
               key={p.id}
               property={p}
@@ -160,7 +197,7 @@ function PropertyList({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {sortedProperties.map((p) => (
+          {pagedProperties.map((p) => (
             <PropertyCard
               key={p.id}
               property={p}
@@ -171,6 +208,17 @@ function PropertyList({
             />
           ))}
         </div>
+      )}
+
+      {/* Page controls: grid and list only (the map shows every result), and
+          nothing at all when everything fits on one page. */}
+      {viewMode !== "map" && totalPages > 1 && (
+        <>
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+          <p className="mt-3 text-center text-xs text-secondary/60">
+            Showing {pageStart + 1}–{pageStart + pagedProperties.length} of {sortedProperties.length}
+          </p>
+        </>
       )}
     </div>
   );

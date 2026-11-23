@@ -6,12 +6,11 @@ import useNeighborhoods from "@/site/hooks/useNeighborhoods";
 import usePropertyCounts from "@/site/hooks/usePropertyCounts";
 import usePageTitle from "@/shared/seo/usePageTitle";
 import usePageMeta from "@/shared/seo/usePageMeta";
+import { PAGE_META } from "@/shared/seo/pageMeta";
 
 function NeighborhoodsPage() {
-  usePageTitle("Neighborhoods");
-  usePageMeta(
-    "Explore Tangier's neighborhoods, from the historic Kasbah to the modern Malabata coastline, and see available properties in each district.",
-  );
+  usePageTitle(PAGE_META.neighborhoods.title);
+  usePageMeta(PAGE_META.neighborhoods.description);
   const navigate = useNavigate();
   const { neighborhoods: loadedNeighborhoods, loading: neighborhoodsLoading } = useNeighborhoods();
   const { loading: countsLoading, error: countsError, getPropertyCountForNeighborhoodByType } = usePropertyCounts();

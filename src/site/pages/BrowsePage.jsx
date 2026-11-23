@@ -12,6 +12,7 @@ import useCatalogs from "@/site/hooks/useCatalogs";
 import useOpenProperty from "@/site/hooks/useOpenProperty";
 import usePageTitle from "@/shared/seo/usePageTitle";
 import usePageMeta from "@/shared/seo/usePageMeta";
+import { PAGE_META } from "@/shared/seo/pageMeta";
 import Spinner from "@/shared/components/Spinner";
 
 const VALID_LISTING_TYPES = new Set(["rent", "sale"]);
@@ -19,12 +20,11 @@ const NO_PROPERTIES = [];
 
 function BrowsePage() {
   const { listingType } = useParams();
-  usePageTitle(listingType === "sale" ? "Properties for Sale in Tangier" : "Properties for Rent in Tangier");
-  usePageMeta(
-    listingType === "sale"
-      ? "Browse verified apartments and villas for sale in Tangier. Updated listings across Tangier's finest neighborhoods from BSI Properties."
-      : "Browse verified apartments and villas for rent in Tangier. Updated listings across Tangier's finest neighborhoods from BSI Properties.",
-  );
+  // The page's title and description (and its heading, below) come from
+  // src/shared/seo/pageMeta.js, so the edge functions can use the same words.
+  const pageMeta = listingType === "sale" ? PAGE_META.sale : PAGE_META.rent;
+  usePageTitle(pageMeta.title);
+  usePageMeta(pageMeta.description);
   // The list (both rent and sale) and the catalogs the filters are built from are
   // two separate, cached requests; this page waits for both, and a failure of
   // either empties the list and shows the error screen.
@@ -36,7 +36,7 @@ function BrowsePage() {
   const { reload: reloadList } = browseList;
   const { reload: reloadCatalogs } = catalogs;
   const reload = useCallback(() => Promise.all([reloadList(), reloadCatalogs()]), [reloadList, reloadCatalogs]);
-  const { filters, setFilters, search, setSearch, priceBounds } = useBrowseFilters({
+  const { filters, setFilters, search, setSearch, priceBounds, page, setPage } = useBrowseFilters({
     listingType,
     properties,
     loading,
@@ -118,7 +118,7 @@ function BrowsePage() {
     );
   }
 
-  const pageHeading = listingType === "sale" ? "Properties for Sale in Tangier" : "Properties for Rent in Tangier";
+  const pageHeading = pageMeta.title;
 
   return (
     <div className="min-h-screen bg-primary-500 pt-20 lg:pt-24">
@@ -156,6 +156,8 @@ function BrowsePage() {
               setFilters={setFilters}
               listingType={listingType}
               priceBounds={priceBounds}
+              page={page}
+              onPageChange={setPage}
             />
           </div>
         </div>
