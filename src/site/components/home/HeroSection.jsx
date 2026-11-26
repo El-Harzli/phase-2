@@ -82,7 +82,13 @@ function HeroSection() {
               and the AVIF <source> is used by every browser that supports it
               (the <img> inside is the WebP fallback and carries all the
               attributes). `contents` keeps <picture> from adding a box of its
-              own, so the layout is identical to a bare <img>. */}
+              own, so the layout is identical to a bare <img>.
+              width/height are the intrinsic size of the largest generated copy
+              (1280x731; every copy has the same ratio to within 0.2%). They don't
+              set the size it is drawn at — w-full h-auto does — they only let the
+              browser reserve the image's height before it has loaded, so the
+              sections below don't jump down when it arrives (that jump was the
+              homepage's mobile layout shift, where the image sits under the text). */}
           <picture className="contents">
             {HERO_AVIF.length > 0 && <source type="image/avif" srcSet={toSrcSet(HERO_AVIF)} sizes={HERO_SIZES} />}
             <img
@@ -90,6 +96,8 @@ function HeroSection() {
               srcSet={toSrcSet(HERO_WEBP)}
               sizes={HERO_SIZES}
               alt="Modern home exterior"
+              width={1280}
+              height={731}
               fetchPriority="high"
               decoding="async"
               className="relative w-full h-auto max-h-[30dvh] sm:max-h-[35dvh] md:max-h-[45vh] lg:max-h-[60vh] xl:max-h-[65vh] object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.2)] mx-auto"
