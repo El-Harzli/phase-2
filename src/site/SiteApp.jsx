@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { SiteSettingsProvider } from "@/site/context/SiteSettingsProvider";
 import { FavoritesProvider } from "@/site/context/FavoritesProvider";
@@ -9,16 +9,22 @@ import SiteErrorFallback from "@/site/components/SiteErrorFallback";
 import NotFoundPage from "@/site/pages/NotFoundPage";
 import HomePage from "@/site/pages/HomePage";
 import BrowsePage from "@/site/pages/BrowsePage";
-import NeighborhoodsPage from "@/site/pages/NeighborhoodsPage";
-import ContactPage from "@/site/pages/ContactPage";
-import AboutPage from "@/site/pages/AboutPage";
-import ConciergePage from "@/site/pages/ConciergePage";
 import PropertyDetailPage from "@/site/pages/PropertyDetailPage";
 import PropertyOverlayPage from "@/site/pages/PropertyOverlayPage";
 import ErrorBoundary from "@/shared/components/ErrorBoundary";
 import { clearFavoriteCards } from "@/site/hooks/useFavoriteProperties";
 import { clearPreviews } from "@/site/lib/propertyPreviews";
 import { clearRequestCache } from "@/site/lib/requestCache";
+import lazyWithRetry from "@/site/lib/lazyWithRetry";
+
+// The pages that only their own route needs are loaded when someone goes to them,
+// not with the first page load: HomePage, BrowsePage and the property pages stay
+// in the main bundle because they are where visitors arrive and search from.
+// See lazyWithRetry for what happens if one of these files can't be fetched.
+const NeighborhoodsPage = lazyWithRetry(() => import("@/site/pages/NeighborhoodsPage"), "neighborhoods");
+const ContactPage = lazyWithRetry(() => import("@/site/pages/ContactPage"), "contact");
+const AboutPage = lazyWithRetry(() => import("@/site/pages/AboutPage"), "about");
+const ConciergePage = lazyWithRetry(() => import("@/site/pages/ConciergePage"), "concierge");
 
 export default function SiteApp() {
   const location = useLocation();
@@ -79,18 +85,29 @@ export default function SiteApp() {
               PropertyOverlayPage's role="dialog"), not part of the
               document's main content flow. */}
               <main>
-                <Routes location={backgroundLocation || location}>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/properties" element={<Navigate to="/properties/rent" replace />} />
-                  <Route path="/properties/:listingType" element={<BrowsePage />} />
-                  <Route path="/property/:id" element={<PropertyDetailPage />} />
-                  <Route path="/property/:slug/:id" element={<PropertyDetailPage />} />
-                  <Route path="/concierge" element={<ConciergePage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/neighborhoods" element={<NeighborhoodsPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
+                {/* The fallback fills the screen in the page colour while a page's
+                code is fetched, so the Footer doesn't jump up under the Header in
+                the meantime. */}
+                <Suspense
+                  fallback={
+                    <div role="status" className="min-h-dvh bg-primary-500">
+                      <span className="sr-only">Loading page</span>
+                    </div>
+                  }
+                >
+                  <Routes location={backgroundLocation || location}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/properties" element={<Navigate to="/properties/rent" replace />} />
+                    <Route path="/properties/:listingType" element={<BrowsePage />} />
+                    <Route path="/property/:id" element={<PropertyDetailPage />} />
+                    <Route path="/property/:slug/:id" element={<PropertyDetailPage />} />
+                    <Route path="/concierge" element={<ConciergePage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/neighborhoods" element={<NeighborhoodsPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
               </main>
 
               {backgroundLocation && (
