@@ -1,32 +1,53 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router";
-import PropertyCard from "@/site/components/PropertyCard";
 import useFeaturedProperties from "@/site/hooks/useFeaturedProperties";
 import { useFavorites } from "@/site/context/FavoritesProvider";
 import SectionHeader from "@/site/components/SectionHeader";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { IoChevronBackOutline, IoChevronForwardOutline } from "react-icons/io5";
-import "swiper/css";
-import Spinner from "@/shared/components/Spinner";
+import PropertyCardSkeleton from "@/site/components/PropertyCardSkeleton";
+import ErrorBoundary from "@/shared/components/ErrorBoundary";
 
-// How wide a card renders at each Swiper breakpoint below (slidesPerView 1.15
-// / 1.5 / 2.5 / 3.5 / 4.5 / 5.2 of the content width), rounded UP a little so
-// the browser never picks a file that's too small. Keep in step with the
-// `breakpoints` prop on the Swiper — this is what stops a ~300px card from
-// downloading a 1200px photo.
-const CARD_IMAGE_SIZES =
-  "(min-width: 1536px) 19vw, (min-width: 1280px) 22vw, (min-width: 1024px) 28vw, (min-width: 768px) 38vw, (min-width: 640px) 62vw, 85vw";
+// Swiper (and its CSS) live in FeaturedCarousel.jsx and are downloaded only once
+// this section is near the screen — see `nearViewport` below.
+const FeaturedCarousel = lazy(() => import("@/site/components/home/FeaturedCarousel"));
+
+// What shows in place of the carousel while the featured list is loading, and
+// while the carousel code is being fetched. Its cards are as tall as the real
+// ones, with the same spacing as the Swiper (`!px-0.5 !pt-2 !pb-8`), and as
+// wide as they will be at each screen size: the `basis-[calc(…)]` values are
+// Swiper's own formula, (width - (slidesPerView - 1) × spaceBetween) /
+// slidesPerView, for the `breakpoints` in FeaturedCarousel.jsx, and the gaps are
+// its spaceBetween (12 / 16 / 18 / 20 / 24 / 24). Keep them in step with those
+// breakpoints, so the swap to the carousel doesn't move the page.
+function CarouselPlaceholder() {
+  return (
+    <div role="status" aria-busy="true" className="relative">
+      <span className="sr-only">Loading featured properties</span>
+      <div className="flex gap-3 sm:gap-4 md:gap-[18px] lg:gap-5 xl:gap-6 overflow-hidden px-0.5 pt-2 pb-8">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div
+            key={i}
+            className="shrink-0 basis-[calc((100%_-_1.8px)_/_1.15)] sm:basis-[calc((100%_-_8px)_/_1.5)] md:basis-[calc((100%_-_27px)_/_2.5)] lg:basis-[calc((100%_-_50px)_/_3.5)] xl:basis-[calc((100%_-_84px)_/_4.5)] 2xl:basis-[calc((100%_-_100.8px)_/_5.2)]"
+          >
+            <PropertyCardSkeleton />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function FeaturedPropertiesSection() {
   const [activeFilter, setActiveFilter] = useState("For Rent");
-  const [isBeginning, setIsBeginning] = useState(true);
-  const [isEnd, setIsEnd] = useState(false);
+  // True once the section is within ~400px of the screen: only then is the
+  // carousel code downloaded. A browser without IntersectionObserver gets it
+  // straight away. It never goes back to false.
+  const [nearViewport, setNearViewport] = useState(() => typeof IntersectionObserver === "undefined");
 
+  const sectionRef = useRef(null);
   const saleRef = useRef(null);
   const rentRef = useRef(null);
   const underlineRef = useRef(null);
   const tabsContainerRef = useRef(null);
-  const swiperRef = useRef(null);
 
   const navigate = useNavigate();
   const { properties, loading } = useFeaturedProperties();
@@ -61,6 +82,25 @@ function FeaturedPropertiesSection() {
     }
   }, [activeFilter]);
 
+  // Watches the section so the carousel code is fetched shortly before it
+  // scrolls into view, not on the first page load.
+  useEffect(() => {
+    if (nearViewport) return undefined;
+    const section = sectionRef.current;
+    if (!section) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "400px 0px" },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [nearViewport]);
+
   // Recalculates on filter change, container resize, font-load reflow,
   // AND window resize/orientation change - the original only recalculated
   // once on mount/filter-change, so rotating a phone or resizing a window
@@ -83,7 +123,7 @@ function FeaturedPropertiesSection() {
   }, [recalcUnderline]);
 
   return (
-    <div className="wrapper w-full py-9">
+    <div ref={sectionRef} className="wrapper w-full py-9">
       <SectionHeader
         eyebrow="Exclusive Collection"
         title="Featured Properties"
@@ -136,71 +176,30 @@ function FeaturedPropertiesSection() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-10">
-          <Spinner />
-        </div>
+        <CarouselPlaceholder />
       ) : filtered.length === 0 ? (
         <p className="text-center text-[13px] text-secondary py-10">No properties available in this category yet.</p>
+      ) : !nearViewport ? (
+        <CarouselPlaceholder />
       ) : (
-        <div className="relative">
-          <Swiper
-            // remounts cleanly on filter switch instead of carrying over
-            // a slide index that may no longer exist in the new list
-            key={activeFilter}
-            onSwiper={(swiper) => {
-              swiperRef.current = swiper;
-              setIsBeginning(swiper.isBeginning);
-              setIsEnd(swiper.isEnd);
-            }}
-            onSlideChange={(swiper) => {
-              setIsBeginning(swiper.isBeginning);
-              setIsEnd(swiper.isEnd);
-            }}
-            watchOverflow
-            grabCursor
-            className="!px-0.5 !pt-2 !pb-8"
-            breakpoints={{
-              0: { slidesPerView: 1.15, spaceBetween: 12 },
-              640: { slidesPerView: 1.5, spaceBetween: 16 }, // sm
-              768: { slidesPerView: 2.5, spaceBetween: 18 }, // md (bump to 3.5 if you want it denser)
-              1024: { slidesPerView: 3.5, spaceBetween: 20 }, // lg
-              1280: { slidesPerView: 4.5, spaceBetween: 24 }, // xl
-              1536: { slidesPerView: 5.2, spaceBetween: 24 }, // 2xl - keeps cards from stretching too wide
-            }}
-          >
-            {filtered.map((property) => (
-              <SwiperSlide key={property.id} className="h-auto self-stretch">
-                <PropertyCard
-                  property={property}
-                  imageSizes={CARD_IMAGE_SIZES}
-                  isFavorited={favorites.has(property.id)}
-                  onToggleFavorite={() => toggleFavorite(property.id)}
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-
-          {/* Nav arrows for mouse/trackpad users; hidden on touch-first
-              breakpoints where swipe is the natural gesture */}
-          <button
-            type="button"
-            onClick={() => swiperRef.current?.slidePrev()}
-            disabled={isBeginning}
-            aria-label="Previous properties"
-            className="hidden md:flex absolute top-1/2 -translate-y-1/2 -left-4 lg:-left-5 z-10 w-10 h-10 rounded-full bg-white shadow-[0_4px_16px_rgba(0,0,0,0.12)] items-center justify-center text-main transition-all duration-300 hover:bg-accent-500 hover:text-white disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2"
-          >
-            <IoChevronBackOutline className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => swiperRef.current?.slideNext()}
-            disabled={isEnd}
-            aria-label="Next properties"
-            className="hidden md:flex absolute top-1/2 -translate-y-1/2 -right-4 lg:-right-5 z-10 w-10 h-10 rounded-full bg-white shadow-[0_4px_16px_rgba(0,0,0,0.12)] items-center justify-center text-main transition-all duration-300 hover:bg-accent-500 hover:text-white disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2"
-          >
-            <IoChevronForwardOutline className="w-4 h-4" />
-          </button>
-        </div>
+        <ErrorBoundary
+          fallback={
+            <p className="text-center text-[13px] text-secondary py-10">
+              The properties couldn’t be loaded here — use “View All Properties” below.
+            </p>
+          }
+        >
+          <Suspense fallback={<CarouselPlaceholder />}>
+            <FeaturedCarousel
+              // remounts cleanly on filter switch instead of carrying over
+              // a slide index that may no longer exist in the new list
+              key={activeFilter}
+              properties={filtered}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       <div className="text-center mt-8">
